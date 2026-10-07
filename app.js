@@ -5,7 +5,8 @@ const app = document.getElementById('app');
 const topbar = document.getElementById('topbar');
 
 const roleById = Object.fromEntries(ROLES.map(r => [r.id, r]));
-const docById = Object.fromEntries(DOCS.map(d => [d.id, d]));
+let docs = DOCS; // сначала – встроенная копия, потом тексты из Google-таблицы
+let docById = Object.fromEntries(docs.map(d => [d.id, d]));
 
 // ---------- Вспомогательные функции ----------
 
@@ -48,7 +49,7 @@ function bodyText(doc) {
 function search(query) {
   const stems = stemsOf(query);
   if (!stems.length) return [];
-  return DOCS.map(doc => {
+  return docs.map(doc => {
     const title = norm(doc.title), tags = norm(doc.tags.join(' ')), summary = norm(doc.summary), body = norm(bodyText(doc));
     let score = 0;
     for (const s of stems) {
@@ -121,7 +122,7 @@ function renderGate(error) {
 }
 
 function renderHome(query) {
-  const recent = [...DOCS].sort((a, b) => b.updated.localeCompare(a.updated)).slice(0, 4);
+  const recent = [...docs].sort((a, b) => b.updated.localeCompare(a.updated)).slice(0, 4);
   app.innerHTML =
     '<section class="home-search">' +
       '<h1>Найдите правило за пару секунд</h1>' +
@@ -136,7 +137,7 @@ function renderHome(query) {
         '<h2>Регламенты по ролям</h2>' +
         '<div class="roles">' +
           ROLES.map(role => {
-            const count = DOCS.filter(d => d.role === role.id).length;
+            const count = docs.filter(d => d.role === role.id).length;
             return '<a class="role-tab" href="#/role/' + role.id + '" style="--role:' + role.color + '">' +
               '<span class="role-name">' + esc(role.name) + '</span>' +
               '<span class="role-desc">' + esc(role.desc) + '</span>' +
@@ -184,8 +185,8 @@ function renderHome(query) {
 function renderRole(id) {
   const role = roleById[id];
   if (!role) return renderNotFound();
-  const docs = DOCS.filter(d => d.role === id);
-  const groups = [...new Set(docs.map(d => d.group))];
+  const roleDocs = docs.filter(d => d.role === id);
+  const groups = [...new Set(roleDocs.map(d => d.group))];
   app.innerHTML =
     '<nav class="crumbs" aria-label="Путь"><a href="#/">Главная</a><span aria-hidden="true">/</span><span>' + esc(role.name) + '</span></nav>' +
     '<section class="role-head" style="--role:' + role.color + '">' +
@@ -195,7 +196,7 @@ function renderRole(id) {
     groups.map(g =>
       '<section class="block">' +
         '<h2>' + esc(g) + '</h2>' +
-        '<div class="doc-list">' + docs.filter(d => d.group === g).map(d => docLink(d)).join('') + '</div>' +
+        '<div class="doc-list">' + roleDocs.filter(d => d.group === g).map(d => docLink(d)).join('') + '</div>' +
       '</section>'
     ).join('') +
     (id !== 'all' ? '<p class="also">Не забудьте про общие правила: <a href="#/role/all">регламенты для всех сотрудников</a>.</p>' : '');
@@ -237,14 +238,22 @@ function renderNotFound() {
 
 // ---------- Переходы между страницами ----------
 
-function route() {
+// refresh = true – перерисовать текущую страницу новыми текстами, не сбивая прокрутку и поиск
+function route(refresh) {
+  const isRefresh = refresh === true;
   if (storageGet('pl-auth') !== '1') return renderGate(false);
   topbar.hidden = false;
+  sourceLine.hidden = false;
 
   const hash = decodeURIComponent(location.hash.replace(/^#\/?/, ''));
   const [path, queryString] = hash.split('?');
   const parts = path.split('/').filter(Boolean);
-  const q = new URLSearchParams(queryString || '').get('q') || '';
+  let q = new URLSearchParams(queryString || '').get('q') || '';
+
+  // При обновлении главной сохраняем то, что человек уже набрал в поиске
+  const typed = document.getElementById('big-input');
+  const hadFocus = typed && document.activeElement === typed;
+  if (isRefresh && typed) q = typed.value;
 
   document.body.classList.toggle('is-home', !parts.length);
   if (!parts.length) renderHome(q);
@@ -252,8 +261,137 @@ function route() {
   else if (parts[0] === 'doc') renderDoc(parts[1]);
   else renderNotFound();
 
+  if (isRefresh) {
+    if (hadFocus) document.getElementById('big-input').focus();
+    return;
+  }
   window.scrollTo(0, 0);
   if (parts.length) app.focus({ preventScroll: true });
+}
+
+// ---------- Тексты из Google-таблицы ----------
+// HR правит таблицу – сайт при открытии берёт свежие тексты.
+// Таблица открыта только для чтения по ссылке.
+
+const SHEET_ID = '1qw5DY_NkLGvDvOVhVqx-Ag2V8QboVPkc_lFqE0SiKN0';
+const SHEET_CSV = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/export?format=csv&gid=0';
+const CACHE_KEY = 'pl-docs';
+const sourceLine = document.getElementById('source');
+
+function setSource(text) { sourceLine.textContent = text; }
+
+function timeNow() {
+  const d = new Date();
+  return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+}
+
+// Разбор CSV: учитываем кавычки и переносы строк внутри ячеек
+function parseCSV(text) {
+  const rows = [];
+  let row = [], cell = '', quoted = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (quoted) {
+      if (ch === '"' && text[i + 1] === '"') { cell += '"'; i++; }
+      else if (ch === '"') quoted = false;
+      else cell += ch;
+    } else if (ch === '"') quoted = true;
+    else if (ch === ',') { row.push(cell); cell = ''; }
+    else if (ch === '\n') { row.push(cell); rows.push(row); row = []; cell = ''; }
+    else if (ch !== '\r') cell += ch;
+  }
+  if (cell || row.length) { row.push(cell); rows.push(row); }
+  return rows;
+}
+
+// Текст из ячейки → блоки регламента:
+// «1. …» – шаги, «- …» – список, «Важно: …» – выделенный блок, остальное – абзацы
+function textToBody(text) {
+  const body = [];
+  for (const raw of text.split('\n')) {
+    const line = raw.trim();
+    if (!line) continue;
+    const last = body[body.length - 1];
+    let m;
+    if ((m = line.match(/^\d+[.)]\s*(.+)$/))) {
+      if (last && last.type === 'steps' && !/^1[.)]/.test(line)) last.items.push(m[1]);
+      else body.push({ type: 'steps', items: [m[1]] });
+    } else if ((m = line.match(/^[-–•]\s*(.+)$/))) {
+      if (last && last.type === 'list') last.items.push(m[1]);
+      else body.push({ type: 'list', items: [m[1]] });
+    } else if ((m = line.match(/^важно[:.!]\s*(.+)$/i))) {
+      body.push({ type: 'note', text: m[1] });
+    } else {
+      body.push({ type: 'p', text: line });
+    }
+  }
+  return body;
+}
+
+function toIsoDate(value) {
+  const v = String(value).trim();
+  let m = v.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+  if (m) return m[3] + '-' + m[2].padStart(2, '0') + '-' + m[1].padStart(2, '0');
+  m = v.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m ? v : '2026-01-01';
+}
+
+function rowsToDocs(rows) {
+  const head = rows[0].map(h => norm(h.trim()));
+  const col = name => head.indexOf(norm(name));
+  const c = {
+    id: col('Код'), role: col('Роль'), group: col('Раздел'), title: col('Название'), summary: col('Кратко'),
+    text: col('Текст'), tags: col('Слова для поиска'), updated: col('Обновлено'), related: col('Связанные')
+  };
+  if (c.title < 0 || c.text < 0) return [];
+  const roleByName = Object.fromEntries(ROLES.map(r => [norm(r.name), r.id]));
+  const get = (row, i) => (i >= 0 && row[i] ? row[i].trim() : '');
+
+  const list = rows.slice(1).filter(row => get(row, c.title)).map((row, n) => ({
+    id: (get(row, c.id) || 'r' + (n + 1)).toLowerCase().replace(/[^a-z0-9-]+/g, '-'),
+    role: roleByName[norm(get(row, c.role))] || 'all',
+    group: get(row, c.group) || 'Общее',
+    title: get(row, c.title),
+    summary: get(row, c.summary),
+    body: textToBody(get(row, c.text)),
+    tags: get(row, c.tags).split(',').map(t => t.trim()).filter(Boolean),
+    updated: toIsoDate(get(row, c.updated)),
+    relatedTitles: get(row, c.related).split(';').map(t => norm(t.trim())).filter(Boolean)
+  }));
+  // «Связанные» в таблице пишутся названиями – превращаем их в ссылки
+  const idByTitle = Object.fromEntries(list.map(d => [norm(d.title), d.id]));
+  list.forEach(d => { d.related = d.relatedTitles.map(t => idByTitle[t]).filter(Boolean); delete d.relatedTitles; });
+  return list;
+}
+
+function useDocs(list) {
+  docs = list;
+  docById = Object.fromEntries(docs.map(d => [d.id, d]));
+}
+
+async function loadFromSheet() {
+  // Сначала показываем сохранённую копию с прошлого раза – это мгновенно
+  try {
+    const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
+    if (cached && cached.docs && cached.docs.length) useDocs(cached.docs);
+  } catch (e) {}
+  setSource('Загружаем свежие тексты из Google-таблицы…');
+
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 10000);
+    const response = await fetch(SHEET_CSV, { signal: controller.signal, cache: 'no-store' });
+    clearTimeout(timer);
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+    const list = rowsToDocs(parseCSV(await response.text()));
+    if (!list.length) throw new Error('в таблице нет регламентов');
+    useDocs(list);
+    try { localStorage.setItem(CACHE_KEY, JSON.stringify({ docs: list, at: Date.now() })); } catch (e) {}
+    setSource('Тексты загружены из Google-таблицы в ' + timeNow());
+    if (storageGet('pl-auth') === '1') route(true); // экран входа не трогаем, чтобы не стереть набранный пароль
+  } catch (e) {
+    setSource('Нет связи с Google-таблицей – показана сохранённая копия регламентов.');
+  }
 }
 
 document.getElementById('top-search').addEventListener('submit', e => {
@@ -265,9 +403,11 @@ document.getElementById('top-search').addEventListener('submit', e => {
 
 document.getElementById('logout').addEventListener('click', () => {
   storageRemove('pl-auth');
+  sourceLine.hidden = true;
   location.hash = '#/';
   route();
 });
 
 window.addEventListener('hashchange', route);
+loadFromSheet();
 route();

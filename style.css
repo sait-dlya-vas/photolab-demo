@@ -333,6 +333,16 @@ main { max-width: var(--page); margin: 0 auto; padding: 0 var(--side) 64px; }
   border-radius: 8px;
 }
 
+/* ===== Строка «откуда тексты» внизу ===== */
+.source {
+  max-width: var(--page);
+  margin: 0 auto;
+  padding: 0 var(--side) 32px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.source[hidden] { display: none; }
+
 /* ===== Телефон ===== */
 @media (max-width: 640px) {
   body { font-size: 17px; }

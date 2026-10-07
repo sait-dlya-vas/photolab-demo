@@ -1,0 +1,355 @@
+/* ===== Цвета и шрифт ===== */
+:root {
+  --bg: #F2F4F7;        /* фон страницы – светлая «бумага» */
+  --surface: #FFFFFF;   /* карточки и поле поиска */
+  --ink: #1A2238;       /* основной текст – тёмная типографская краска */
+  --muted: #586179;     /* второстепенный текст */
+  --line: #DCE1E9;      /* тонкие линии */
+  --focus: #0095CC;     /* обводка при навигации с клавиатуры */
+  --mark: #FFE58A;      /* подсветка найденных слов */
+
+  --font: "Golos Text", Arial, sans-serif;
+  --page: 1040px;
+  --text: 720px;
+  --side: clamp(16px, 4vw, 32px);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 17px;
+  line-height: 1.55;
+  -webkit-text-size-adjust: 100%;
+}
+
+a { color: inherit; }
+h1, h2 { margin: 0; line-height: 1.2; letter-spacing: -0.01em; }
+h1 { font-size: clamp(28px, 5vw, 40px); font-weight: 800; }
+h2 { font-size: 20px; font-weight: 700; margin-bottom: 14px; }
+
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+main:focus { outline: none; }
+
+mark { background: var(--mark); color: inherit; border-radius: 3px; padding: 0 2px; }
+
+/* ===== Кнопки ===== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 50px;
+  padding: 0 24px;
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+  background: var(--ink);
+  color: #fff;
+  font: 600 16px var(--font);
+  text-decoration: none;
+  cursor: pointer;
+}
+.btn:hover { background: #2B3550; border-color: #2B3550; }
+.btn-ghost { background: transparent; color: var(--ink); }
+.btn-ghost:hover { background: var(--ink); color: #fff; }
+
+/* ===== Плашка демо ===== */
+.demo-note {
+  padding: 9px var(--side);
+  background: #FFF4CC;
+  border-bottom: 1px solid #F2D675;
+  font-size: 14px;
+  text-align: center;
+}
+
+/* ===== Шапка ===== */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 12px var(--side);
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+.topbar[hidden] { display: none; }
+.brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+.brand-mark { width: 30px; height: 30px; flex: none; }
+.brand-text { display: grid; line-height: 1.15; }
+.brand-name { font-weight: 800; letter-spacing: 0.04em; }
+.brand-sub { font-size: 13px; color: var(--muted); }
+
+.top-search { flex: 1; max-width: 420px; margin-left: auto; }
+.top-search input,
+.big-search input {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--ink);
+  font: 400 16px var(--font);
+}
+.top-search input { min-height: 42px; padding: 0 14px; border-radius: 10px; }
+.is-home .top-search { visibility: hidden; }
+
+.logout {
+  min-height: 42px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  font: 500 15px var(--font);
+  cursor: pointer;
+}
+.logout:hover { color: var(--ink); border-color: var(--ink); }
+
+/* ===== Общая ширина страниц ===== */
+main { max-width: var(--page); margin: 0 auto; padding: 0 var(--side) 64px; }
+.block { margin-top: 40px; }
+
+/* ===== Вход ===== */
+.gate {
+  max-width: 400px;
+  margin: 12vh auto 0;
+  text-align: center;
+}
+.gate-mark { width: 52px; height: 52px; margin-bottom: 18px; }
+.gate h1 { font-size: 30px; }
+.gate-lead { color: var(--muted); margin: 10px 0 28px; }
+.gate-form {
+  display: grid;
+  gap: 10px;
+  padding: 24px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  text-align: left;
+}
+.gate-form label { font-weight: 600; font-size: 15px; }
+.gate-form input {
+  min-height: 50px;
+  padding: 0 14px;
+  border: 1px solid #B9C1CF;
+  border-radius: 10px;
+  font: 400 17px var(--font);
+}
+.gate-form .btn { margin-top: 6px; }
+.gate-error { margin: 0; color: #B3261E; font-size: 15px; }
+.gate-hint { margin-top: 16px; font-size: 15px; color: var(--muted); }
+
+/* ===== Главная: поиск ===== */
+.home-search { padding: 48px 0 8px; max-width: var(--text); }
+.big-search { margin-top: 20px; }
+.big-search input {
+  min-height: 62px;
+  padding: 0 20px 0 54px;
+  border: 2px solid var(--ink);
+  border-radius: 14px;
+  background: var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='22' fill='none' stroke='%231A2238' stroke-width='2.2'%3E%3Ccircle cx='9.5' cy='9.5' r='7'/%3E%3Cpath d='M15 15l5.5 5.5'/%3E%3C/svg%3E") no-repeat 20px center;
+  font-size: 19px;
+}
+.hints { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.hint {
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font: 500 15px var(--font);
+  cursor: pointer;
+}
+.hint:hover { border-color: var(--ink); }
+
+.results { max-width: var(--text); }
+.results:empty { display: none; }
+.results-count { margin: 28px 0 12px; color: var(--muted); font-size: 15px; }
+
+/* ===== Плитки ролей – как цветные разделители в папке ===== */
+.roles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+.role-tab {
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  min-height: 150px;
+  padding: 22px 18px 16px 18px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 4px 14px 14px 14px;
+  text-decoration: none;
+}
+/* цветной язычок-закладка сверху */
+.role-tab::before {
+  content: "";
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  width: 64px;
+  height: 8px;
+  border-radius: 4px 4px 0 0;
+  background: var(--role);
+}
+.role-tab:hover { border-color: var(--role); box-shadow: inset 0 0 0 1px var(--role); }
+.role-name { font-size: 20px; font-weight: 700; }
+.role-desc { color: var(--muted); font-size: 15px; line-height: 1.4; }
+.role-count { margin-top: auto; padding-top: 10px; font-size: 14px; font-weight: 600; }
+
+/* ===== Список регламентов ===== */
+.doc-list { display: grid; gap: 8px; max-width: var(--text); }
+.doc-link {
+  display: grid;
+  gap: 2px;
+  padding: 14px 16px 14px 18px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--role);
+  border-radius: 10px;
+  text-decoration: none;
+}
+.doc-link:hover { border-color: var(--role); }
+.doc-link-title { font-weight: 700; font-size: 17px; }
+.doc-link-text { color: var(--muted); font-size: 15px; line-height: 1.45; }
+.doc-link-meta { margin-top: 4px; font-size: 13px; color: var(--muted); }
+
+/* ===== Пустой результат ===== */
+.empty {
+  max-width: var(--text);
+  margin-top: 28px;
+  padding: 24px;
+  background: var(--surface);
+  border: 1px dashed #B9C1CF;
+  border-radius: 14px;
+}
+.empty p { margin: 0 0 10px; }
+.empty .btn { margin-top: 6px; }
+.empty-page { margin-top: 48px; }
+.empty-page h1 { font-size: 28px; margin-bottom: 10px; }
+
+/* ===== Хлебные крошки ===== */
+.crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 20px 0 0;
+  font-size: 15px;
+  color: var(--muted);
+}
+.crumbs a { color: var(--ink); }
+
+/* ===== Страница роли ===== */
+.role-head {
+  margin-top: 18px;
+  padding: 22px 0 0;
+  border-top: 8px solid var(--role);
+  max-width: var(--text);
+}
+.role-head p { margin: 8px 0 0; color: var(--muted); }
+.also { margin-top: 36px; color: var(--muted); font-size: 15px; }
+
+/* ===== Страница регламента ===== */
+.doc {
+  max-width: var(--text);
+  margin-top: 16px;
+  padding: 28px clamp(18px, 4vw, 40px) 32px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-top: 8px solid var(--role);
+  border-radius: 4px 4px 14px 14px;
+}
+.doc-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  margin: 12px 0 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px 3px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--ink);
+  font-weight: 600;
+}
+.chip::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--role); }
+.doc-summary { margin: 18px 0 8px; font-size: 19px; line-height: 1.45; }
+.doc p { margin: 14px 0; }
+
+/* Шаги по порядку */
+.steps { list-style: none; counter-reset: step; margin: 18px 0; padding: 0; }
+.steps li {
+  counter-increment: step;
+  position: relative;
+  padding: 0 0 16px 46px;
+}
+.steps li::before {
+  content: counter(step);
+  position: absolute;
+  left: 0;
+  top: -2px;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+}
+/* линия между шагами */
+.steps li:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: 14px;
+  top: 30px;
+  bottom: 2px;
+  width: 2px;
+  background: var(--line);
+}
+
+.bullets { margin: 14px 0; padding-left: 22px; }
+.bullets li { margin-bottom: 8px; }
+.bullets li::marker { color: var(--role); }
+
+.note {
+  margin: 20px 0 4px;
+  padding: 14px 16px;
+  background: #FFF4CC;
+  border-left: 4px solid #F2B705;
+  border-radius: 8px;
+}
+
+/* ===== Телефон ===== */
+@media (max-width: 640px) {
+  body { font-size: 17px; }
+  .topbar { gap: 10px; flex-wrap: wrap; }
+  .brand-sub { display: none; }
+  .top-search { order: 3; flex-basis: 100%; max-width: none; }
+  .is-home .top-search { display: none; }
+  .logout { margin-left: auto; }
+  .home-search { padding-top: 28px; }
+  .big-search input { min-height: 56px; font-size: 17px; }
+  .roles { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .role-tab { min-height: 128px; padding: 20px 14px 14px; }
+  .role-name { font-size: 17px; }
+  .role-desc { display: none; }
+  .doc { border-radius: 4px 4px 12px 12px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { scroll-behavior: auto !important; }
+}
